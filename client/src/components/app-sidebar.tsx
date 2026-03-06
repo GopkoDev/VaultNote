@@ -11,7 +11,6 @@ import {
   ArrowShrink01Icon,
 } from "@hugeicons/core-free-icons"
 
-import { filesApi } from "@/api/files"
 import type { FileItem } from "@/types/files"
 import {
   Collapsible,
@@ -35,6 +34,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { filesStore } from "@/store/files-store"
+import { contentStore } from "@/store/content-store"
+import { observer } from "mobx-react-lite"
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
@@ -92,10 +94,19 @@ function SidebarToolbar({
 
 // ─── Tree node ────────────────────────────────────────────────────────────────
 
-function FileTreeNode({ item }: { item: FileItem }) {
+function FileTreeNode({
+  item,
+  onClick,
+}: {
+  item: FileItem
+  onClick: (item: FileItem) => void
+}) {
   if (item.type === "file") {
     return (
-      <SidebarMenuButton className="data-[active=true]:bg-sidebar-accent">
+      <SidebarMenuButton
+        className="data-[active=true]:bg-sidebar-accent"
+        onClick={() => onClick(item)}
+      >
         <HugeiconsIcon icon={FileIcon} size={15} strokeWidth={2} />
         <span className="truncate">{item.name}</span>
       </SidebarMenuButton>
@@ -120,7 +131,7 @@ function FileTreeNode({ item }: { item: FileItem }) {
         <CollapsibleContent>
           <SidebarMenuSub>
             {item.children?.map((child) => (
-              <FileTreeNode key={child.path} item={child} />
+              <FileTreeNode key={child.path} item={child} onClick={onClick} />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -131,82 +142,77 @@ function FileTreeNode({ item }: { item: FileItem }) {
 
 // ─── AppSidebar ───────────────────────────────────────────────────────────────
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [tree, setTree] = React.useState<FileItem[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
-  const [collapseKey, setCollapseKey] = React.useState(0)
+export const AppSidebar = observer(
+  ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
+    const [collapseKey, setCollapseKey] = React.useState(0)
+    const tree = filesStore.tree
+    const loading = filesStore.loading
+    const error = filesStore.error
 
-  async function loadTree() {
-    setLoading(true)
-    setError(null)
-    const res = await filesApi.getTree()
-    if (res.ok) {
-      setTree(res.data)
-    } else {
-      setError(res.error)
+    function handleNewFile() {
+      filesStore.createItem("new-file.md", "file")
     }
-    setLoading(false)
+
+    function handleNewFolder() {
+      filesStore.createItem("new-folder", "directory")
+    }
+
+    function handleRefresh() {
+      filesStore.loadTree()
+    }
+
+    function handleCollapseAll() {
+      setCollapseKey((k) => k + 1)
+    }
+
+    function onFileClick(item: FileItem) {
+      contentStore.openFile(item)
+    }
+
+    return (
+      <Sidebar {...props}>
+        <SidebarContent>
+          <SidebarGroup className="p-0">
+            <SidebarGroupLabel asChild>
+              <SidebarToolbar
+                onNewFile={handleNewFile}
+                onNewFolder={handleNewFolder}
+                onRefresh={handleRefresh}
+                onCollapseAll={handleCollapseAll}
+                loading={loading}
+              />
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {loading && (
+                  <div className="flex items-center gap-2 px-3 py-2 text-sm text-sidebar-foreground/50">
+                    <HugeiconsIcon
+                      icon={Loading03Icon}
+                      size={14}
+                      strokeWidth={2}
+                      className="animate-spin"
+                    />
+                    Loading...
+                  </div>
+                )}
+                {error && (
+                  <div className="px-3 py-2 text-sm text-red-500">{error}</div>
+                )}
+                {!loading &&
+                  !error &&
+                  tree.map((item) => (
+                    <FileTreeNode
+                      key={`${collapseKey}-${item.path}`}
+                      item={item}
+                      onClick={onFileClick}
+                    />
+                  ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarRail />
+      </Sidebar>
+    )
   }
-
-  React.useEffect(() => {
-    loadTree()
-  }, [])
-
-  function handleNewFile() {
-    // TODO: open dialog
-  }
-
-  function handleNewFolder() {
-    // TODO: open dialog
-  }
-
-  function handleCollapseAll() {
-    setCollapseKey((k) => k + 1)
-  }
-
-  return (
-    <Sidebar {...props}>
-      <SidebarContent>
-        <SidebarGroup className="p-0">
-          <SidebarGroupLabel asChild>
-            <SidebarToolbar
-              onNewFile={handleNewFile}
-              onNewFolder={handleNewFolder}
-              onRefresh={loadTree}
-              onCollapseAll={handleCollapseAll}
-              loading={loading}
-            />
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {loading && (
-                <div className="flex items-center gap-2 px-3 py-2 text-sm text-sidebar-foreground/50">
-                  <HugeiconsIcon
-                    icon={Loading03Icon}
-                    size={14}
-                    strokeWidth={2}
-                    className="animate-spin"
-                  />
-                  Loading...
-                </div>
-              )}
-              {error && (
-                <div className="px-3 py-2 text-sm text-red-500">{error}</div>
-              )}
-              {!loading &&
-                !error &&
-                tree.map((item) => (
-                  <FileTreeNode
-                    key={`${collapseKey}-${item.path}`}
-                    item={item}
-                  />
-                ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarRail />
-    </Sidebar>
-  )
-}
+)

@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { filesStore } from "@/store/files-store"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   SidebarInset,
@@ -6,6 +8,14 @@ import {
 } from "@/components/ui/sidebar"
 
 export default function App() {
+  useEffect(() => {
+    filesStore.loadTree()
+
+    return () => {
+      filesStore.destroy()
+    }
+  }, [])
+
   return (
     <SidebarProvider>
       <AppSidebar />
