@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { validatePath, requirePathQuery, requirePathBody } from '../middleware/validatePath';
+import {
+  validatePath,
+  requirePathQuery,
+  requirePathBody,
+} from '../middleware/validatePath';
 import {
   getTree,
   getFileContent,

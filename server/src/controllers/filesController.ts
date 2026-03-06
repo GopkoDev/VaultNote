@@ -34,7 +34,9 @@ async function buildTree(absPath: string): Promise<FileItem> {
   if (stat.isDirectory()) {
     const entries = await fs.readdir(absPath);
     const children = await Promise.all(
-      entries.filter((e) => !e.startsWith('.')).map((e) => buildTree(path.join(absPath, e))),
+      entries
+        .filter((e) => !e.startsWith('.'))
+        .map((e) => buildTree(path.join(absPath, e)))
     );
 
     children.sort(sortItems);
@@ -57,14 +59,18 @@ async function buildTree(absPath: string): Promise<FileItem> {
  * GET /api/files
  * Returns full recursive file tree from DOCS_ROOT
  */
-export async function getTree(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getTree(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     await fs.ensureDir(config.DOCS_ROOT);
     const entries = await fs.readdir(config.DOCS_ROOT);
     const children = await Promise.all(
       entries
         .filter((e) => !e.startsWith('.'))
-        .map((e) => buildTree(path.join(config.DOCS_ROOT, e))),
+        .map((e) => buildTree(path.join(config.DOCS_ROOT, e)))
     );
 
     children.sort(sortItems);
@@ -82,7 +88,7 @@ export async function getTree(_req: Request, res: Response, next: NextFunction):
 export async function getFileContent(
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
     const relPath = req.query['path'] as string;
@@ -112,7 +118,7 @@ export async function getFileContent(
 export async function createItem(
   req: Request<object, object, CreateFileBody>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
     const { path: relPath, type, content = '' } = req.body;
@@ -144,7 +150,7 @@ export async function createItem(
 export async function updateFile(
   req: Request<object, object, UpdateFileBody>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
     const { path: relPath, content } = req.body;
@@ -177,7 +183,11 @@ export async function updateFile(
  * DELETE /api/files?path=notes/old.md
  * Delete a file or directory (recursive)
  */
-export async function deleteItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function deleteItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     const relPath = req.query['path'] as string;
     const absPath = toAbsolute(relPath);
@@ -202,7 +212,7 @@ export async function deleteItem(req: Request, res: Response, next: NextFunction
 export async function renameItem(
   req: Request<object, object, RenameBody>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
     const { path: relPath, newName } = req.body;
@@ -241,7 +251,7 @@ export async function renameItem(
 export async function moveItem(
   req: Request<object, object, MoveBody>,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
     const { path: relPath, targetPath } = req.body;
@@ -270,7 +280,11 @@ export async function moveItem(
  * GET /api/files/search?q=keyword
  * Search files by name or content
  */
-export async function searchFiles(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function searchFiles(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     const query = (req.query['q'] as string)?.toLowerCase().trim();
 
@@ -317,7 +331,7 @@ export async function searchFiles(req: Request, res: Response, next: NextFunctio
                 });
               }
             }
-          }),
+          })
       );
     }
 

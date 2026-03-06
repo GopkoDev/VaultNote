@@ -1,4 +1,9 @@
-import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import type {
+  Request,
+  Response,
+  NextFunction,
+  ErrorRequestHandler,
+} from 'express';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -9,7 +14,7 @@ export const errorHandler: ErrorRequestHandler = (
   err: AppError,
   _req: Request,
   res: Response,
-  _next: NextFunction,
+  _next: NextFunction
 ): void => {
   const statusCode = err.statusCode ?? 500;
 
@@ -22,7 +27,11 @@ export const errorHandler: ErrorRequestHandler = (
   });
 };
 
-export function createError(message: string, statusCode = 500, details?: string): AppError {
+export function createError(
+  message: string,
+  statusCode = 500,
+  details?: string
+): AppError {
   const err = new Error(message) as AppError;
   err.statusCode = statusCode;
   err.details = details;

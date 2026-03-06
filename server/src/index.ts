@@ -14,7 +14,7 @@ function createApp() {
     cors({
       origin: config.CLIENT_URL,
       credentials: true,
-    }),
+    })
   );
 
   app.use(express.json({ limit: '10mb' }));
@@ -59,10 +59,14 @@ async function bootstrap(): Promise<void> {
     console.log('╚════════════════════════════════════╝');
     console.log('\x1b[0m');
     console.log(
-      `\x1b[32m✓\x1b[0m Server running on  \x1b[1mhttp://localhost:${config.PORT}\x1b[0m`,
+      `\x1b[32m✓\x1b[0m Server running on  \x1b[1mhttp://localhost:${config.PORT}\x1b[0m`
     );
-    console.log(`\x1b[32m✓\x1b[0m Docs root:         \x1b[1m${config.DOCS_ROOT}\x1b[0m`);
-    console.log(`\x1b[32m✓\x1b[0m Client origin:     \x1b[1m${config.CLIENT_URL}\x1b[0m`);
+    console.log(
+      `\x1b[32m✓\x1b[0m Docs root:         \x1b[1m${config.DOCS_ROOT}\x1b[0m`
+    );
+    console.log(
+      `\x1b[32m✓\x1b[0m Client origin:     \x1b[1m${config.CLIENT_URL}\x1b[0m`
+    );
     console.log('');
   });
 }

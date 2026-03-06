@@ -18,13 +18,14 @@ export function logger(req: Request, res: Response, next: NextFunction): void {
   res.on('finish', () => {
     const ms = Date.now() - start;
     const status = res.statusCode;
-    const statusColor = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
+    const statusColor =
+      status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
 
     console.log(
       `${color}${method}${colors.reset} ` +
         `${colors.dim}${req.originalUrl}${colors.reset} ` +
         `${statusColor}${status}${colors.reset} ` +
-        `${colors.dim}${ms}ms${colors.reset}`,
+        `${colors.dim}${ms}ms${colors.reset}`
     );
   });
 

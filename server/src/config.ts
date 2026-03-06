@@ -14,6 +14,10 @@ function requireEnv(key: string, fallback?: string): string {
 
 export const config: Env = {
   PORT: parseInt(process.env['PORT'] ?? '3001', 10),
-  DOCS_ROOT: path.resolve(__dirname, '../..', requireEnv('DOCS_ROOT', './docs')),
+  DOCS_ROOT: path.resolve(
+    __dirname,
+    '../..',
+    requireEnv('DOCS_ROOT', './docs')
+  ),
   CLIENT_URL: requireEnv('CLIENT_URL', 'http://localhost:5173'),
 };
