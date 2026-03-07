@@ -6,6 +6,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import Editor from "@/views/editor/editor"
 
 export default function App() {
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function App() {
           <SidebarTrigger />
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4">
-          {/* content goes here */}
+          <Editor />
         </main>
       </SidebarInset>
     </SidebarProvider>

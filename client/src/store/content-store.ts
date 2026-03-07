@@ -17,6 +17,8 @@ class ContentStore {
   async openFile(file: FileItem) {
     if (this.openedFiles.some((f) => f.path === file.path)) return
 
+    this.openedFiles = []
+
     this.openedFiles.push({ ...file, content: "" })
 
     await this._loadContent(file.path)
