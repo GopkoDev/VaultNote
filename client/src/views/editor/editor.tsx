@@ -20,7 +20,6 @@ import { common, createLowlight } from "lowlight"
 import mermaid from "mermaid"
 
 import { contentStore } from "@/store/content-store"
-import { filesApi } from "@/api/files"
 
 const lowlight = createLowlight(common)
 
@@ -45,8 +44,7 @@ export default observer(function Editor() {
   const [isEditable, setIsEditable] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const currentFile = contentStore.openedFiles[0]
-  const content = currentFile?.content ?? ""
+  const { content, currentPath } = contentStore
 
   const editor = useEditor({
     extensions: [
@@ -84,12 +82,12 @@ export default observer(function Editor() {
   }, [content, editor])
 
   const handleSave = useCallback(async () => {
-    if (!currentFile || !editor) return
+    if (!currentPath || !editor) return
     const markdown = editor.storage.markdown.getMarkdown()
     setSaving(true)
-    await filesApi.update(currentFile.path, markdown)
+    await contentStore.saveContent(currentPath, markdown)
     setSaving(false)
-  }, [editor, currentFile])
+  }, [editor, currentPath])
 
   const toggleEditable = useCallback(async () => {
     const next = !isEditable
@@ -98,7 +96,7 @@ export default observer(function Editor() {
     if (!next) await handleSave()
   }, [editor, isEditable, handleSave])
 
-  if (!currentFile) {
+  if (!currentPath) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
         Select a file to open
@@ -109,24 +107,8 @@ export default observer(function Editor() {
   if (!editor) return null
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-2 text-sm">
-        <span className="text-muted-foreground">{currentFile.name}</span>
-        <div className="ml-auto flex items-center gap-2">
-          {saving && (
-            <span className="text-xs text-muted-foreground">Saving…</span>
-          )}
-          <button
-            onClick={toggleEditable}
-            className="rounded px-3 py-1 text-xs font-medium transition-colors"
-          >
-            {isEditable ? "Save" : "Edit"}
-          </button>
-        </div>
-      </div>
-      <div className="flex-1 overflow-auto px-6 py-4">
-        <EditorContent editor={editor} />
-      </div>
+    <div className="mx-auto max-w-[800px]">
+      <EditorContent editor={editor} />
     </div>
   )
 })

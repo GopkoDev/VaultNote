@@ -1,38 +1,46 @@
-import { makeAutoObservable, runInAction } from "mobx"
-
+import { makeAutoObservable, reaction, runInAction } from "mobx"
 import { filesApi } from "@/api/files"
-import type { FileItem } from "@/types/files"
-
-interface OpenedFile extends FileItem {
-  content: string
-}
+import { contentTabsStore } from "./content-tabs-store"
 
 class ContentStore {
-  openedFiles: OpenedFile[] = []
+  content: string = ""
+  currentPath: string | null = null
+  isLoading: boolean = false
 
   constructor() {
-    makeAutoObservable(this)
+    makeAutoObservable(this, {}, { autoBind: true, deep: true })
+    reaction(
+      () => contentTabsStore.activeTab?.path ?? null,
+      (path) => {
+        if (path) this.loadContent(path)
+        else
+          runInAction(() => {
+            this.content = ""
+            this.currentPath = null
+          })
+      },
+      { fireImmediately: true }
+    )
   }
 
-  async openFile(file: FileItem) {
-    if (this.openedFiles.some((f) => f.path === file.path)) return
+  async loadContent(path: string) {
+    runInAction(() => {
+      this.isLoading = true
+      this.currentPath = path
+    })
 
-    this.openedFiles = []
-
-    this.openedFiles.push({ ...file, content: "" })
-
-    await this._loadContent(file.path)
-  }
-
-  private async _loadContent(path: string) {
     const res = await filesApi.getContent(path)
 
     runInAction(() => {
-      if (res.ok) {
-        const opened = this.openedFiles.find((f) => f.path === path)
-        if (opened) opened.content = res.data.content
-      }
+      this.isLoading = false
+      // Ignore stale responses if the active tab changed while loading
+      if (this.currentPath !== path) return
+      if (res.ok) this.content = res.data.content
     })
+  }
+
+  async saveContent(path: string, markdown: string) {
+    await filesApi.update(path, markdown)
   }
 }
 

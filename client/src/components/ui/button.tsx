@@ -19,6 +19,8 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        "sidebar-tab":
+          "hover:bg-sidebar-primary/10 hover:ring-1 hover:ring-sidebar-primary/30 aria-pressed:bg-sidebar-primary/15 aria-pressed:text-sidebar-primary aria-pressed:ring-1 aria-pressed:ring-sidebar-primary/60",
       },
       size: {
         default:
