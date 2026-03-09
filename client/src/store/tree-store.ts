@@ -1,7 +1,8 @@
 import { filesApi } from "@/api/files"
 import type { FileItem } from "@/types/files"
-import { autorun, makeAutoObservable, runInAction } from "mobx"
+import { autorun, makeAutoObservable, reaction, runInAction } from "mobx"
 import { toast } from "sonner"
+import { contentTabsStore } from "./content-tabs-store"
 
 const STORAGE_KEY = "tree-store"
 
@@ -35,6 +36,10 @@ class TreeStore {
         JSON.stringify({ isAutoRevealActiveFile: this.isAutoRevealActiveFile })
       )
     })
+    reaction(
+      () => contentTabsStore.activeTab?.path ?? null,
+      (path) => path && this.revealPath(path)
+    )
   }
 
   async loadTree() {
@@ -178,13 +183,17 @@ class TreeStore {
     this.isAutoRevealActiveFile = !this.isAutoRevealActiveFile
   }
 
-  // expandToPath(path: string): void {
-  //   if (this.isAutoRevealActiveFile) return
-  //   const parts = path.split("/").filter(Boolean)
-  //   for (let i = 1; i <= parts.length; i++) {
-  //     this.openFolders.add(parts.slice(0, i).join("/"))
-  //   }
-  // }
+  revealPath(filePath: string) {
+    if (!this.isAutoRevealActiveFile) return
+
+    const parts = filePath.split("/").filter(Boolean)
+    for (let i = 1; i < parts.length; i++) {
+      this.openFolders.add(parts.slice(0, i).join("/"))
+    }
+    if (parts.length > 1) {
+      this.selectedFolderPath = parts.slice(0, -1).join("/")
+    }
+  }
 
   async moveFile(path: string, targetPath: string) {
     const res = await filesApi.move(path, targetPath)

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { observer } from "mobx-react-lite"
 import { SidebarGroupLabel } from "@/components/ui/sidebar"
 import {
   Add01Icon,
@@ -15,8 +16,9 @@ import {
 } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { treeStore } from "@/store/tree-store"
+import { contentTabsStore } from "@/store/content-tabs-store"
 
-export default function SideBarTools() {
+export default observer(function SideBarTools() {
   const [loading, setLoading] = useState(false)
   const {
     isAutoRevealActiveFile,
@@ -28,7 +30,14 @@ export default function SideBarTools() {
 
   const onNewFile = () => startCreate("file")
   const onNewFolder = () => startCreate("directory")
-  const onAutoRevealActiveFile = () => toggleAutoRevealActiveFile()
+  const onAutoRevealActiveFile = () => {
+    toggleAutoRevealActiveFile()
+    // Reveal immediately when enabling the mode
+    if (!isAutoRevealActiveFile) {
+      const path = contentTabsStore.activeTab?.path
+      if (path) treeStore.revealPath(path)
+    }
+  }
   const onCollapseAll = () => collapseAll()
   const onRefresh = async () => {
     try {
@@ -90,4 +99,4 @@ export default function SideBarTools() {
       </div>
     </SidebarGroupLabel>
   )
-}
+})

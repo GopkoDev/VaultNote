@@ -4,9 +4,14 @@ import type { OpenedTab } from "./types/content-tabs-store.types"
 
 const STORAGE_KEY = "content-tabs-store"
 
-function buildDefaultTabs(): Record<number, OpenedTab> {
+function buildNewTab(isActive = true): OpenedTab {
   const id = Date.now()
-  return { [id]: { id, path: null, title: "Нова вкладка", isActive: true } }
+  return { id, path: null, title: "New tab", isActive }
+}
+
+function buildDefaultTabs(): Record<number, OpenedTab> {
+  const tab = buildNewTab()
+  return { [tab.id]: tab }
 }
 
 function loadFromStorage(): Record<number, OpenedTab> {
@@ -49,13 +54,8 @@ class ContentTabsStore {
       }),
       {} as Record<number, OpenedTab>
     )
-    const id = Date.now()
-    openedTabsNew[id] = {
-      id,
-      path: null,
-      title: "Нова вкладка",
-      isActive: true,
-    }
+    const newTab = buildNewTab()
+    openedTabsNew[newTab.id] = newTab
 
     this.openedTabs = openedTabsNew
   }
