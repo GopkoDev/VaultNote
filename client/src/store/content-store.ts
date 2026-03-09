@@ -1,6 +1,7 @@
 import { makeAutoObservable, reaction, runInAction } from "mobx"
 import { filesApi } from "@/api/files"
 import { contentTabsStore } from "./content-tabs-store"
+import { toast } from "sonner"
 
 class ContentStore {
   content: string = ""
@@ -12,12 +13,11 @@ class ContentStore {
     reaction(
       () => contentTabsStore.activeTab?.path ?? null,
       (path) => {
+        runInAction(() => {
+          this.content = ""
+          this.currentPath = null
+        })
         if (path) this.loadContent(path)
-        else
-          runInAction(() => {
-            this.content = ""
-            this.currentPath = null
-          })
       },
       { fireImmediately: true }
     )
@@ -35,7 +35,12 @@ class ContentStore {
       this.isLoading = false
       // Ignore stale responses if the active tab changed while loading
       if (this.currentPath !== path) return
-      if (res.ok) this.content = res.data.content
+      if (res.ok) {
+        this.content = res.data.content
+      } else {
+        toast.error(`Failed to load file: ${path}`)
+        console.warn(res.error)
+      }
     })
   }
 

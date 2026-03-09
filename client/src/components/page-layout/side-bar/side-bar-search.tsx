@@ -1,7 +1,8 @@
 export default function SideBarSearch() {
   return (
-    <div>
-      <div>Side bar: Search</div>
+    <div className="mx-auto my-auto text-center text-lg text-muted-foreground">
+      <p> Side bar: Search</p>
+      <p className="text-sm">in development</p>
     </div>
   )
 }

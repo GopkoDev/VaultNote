@@ -114,6 +114,30 @@ class ContentTabsStore {
     this.openedTabs[tab.id] = { ...tab, title: name, path }
   }
 
+  closeTabsForPath(path: string): void {
+    const tabs = Object.values(this.openedTabs)
+    tabs.forEach((tab) => {
+      if (tab.path && (tab.path === path || tab.path.startsWith(path + "/"))) {
+        this.removeOpenedTab(tab.id)
+      }
+    })
+  }
+
+  renameTabsForPath(oldPath: string, newPath: string): void {
+    this.openedTabs = Object.fromEntries(
+      Object.entries(this.openedTabs).map(([key, tab]) => {
+        if (!tab.path || !tab.path.startsWith(oldPath)) return [key, tab]
+        const updatedPath = newPath + tab.path.slice(oldPath.length)
+        const name = updatedPath.split("/").pop() ?? tab.title
+        return [key, { ...tab, path: updatedPath, title: name }]
+      })
+    )
+  }
+
+  moveTabsForPath(oldPath: string, newPath: string): void {
+    this.renameTabsForPath(oldPath, newPath)
+  }
+
   toggleMode(): void {
     this.mode = this.mode === "edit" ? "view" : "edit"
   }

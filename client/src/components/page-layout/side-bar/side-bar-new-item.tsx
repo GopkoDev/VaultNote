@@ -6,13 +6,13 @@ import { SidebarMenuItem } from "@/components/ui/sidebar"
 import { SideBarInput } from "@/components/own-ui/side-bar-input"
 
 export const SideBarNewItem = observer(() => {
-  const { creatingIn } = treeStore
+  const { creatingIn, submitCreate, startCreate } = treeStore
   const type = creatingIn?.type
   const placeholder = type === "file" ? "file.md" : "folder"
   const icon = type === "file" ? FileIcon : FolderIcon
 
-  const onSubmit = (name: string) => treeStore.submitCreate(name)
-  const onCancel = () => treeStore.startCreate(null)
+  const onSubmit = (name: string) => submitCreate(name)
+  const onCancel = () => startCreate(null)
 
   return (
     <SidebarMenuItem>

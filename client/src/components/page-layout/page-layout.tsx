@@ -1,7 +1,6 @@
 import React from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import ModalsContainer from "@/components/modals/modals-continer"
 import SideBar from "./side-bar/side-bar"
 import PageHeader from "./page-header"
@@ -19,13 +18,11 @@ export default function PageLayout({
         <PageHeader />
         <main className="flex flex-1 flex-col gap-2 overflow-hidden py-1">
           <BreadcrumbsPanel />
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="px-6 py-4">{children}</div>
-          </ScrollArea>
+          <div className="flex-1 overflow-hidden">{children}</div>
         </main>
       </SidebarInset>
 
-      <Toaster position="top-center" richColors />
+      <Toaster position="bottom-left" richColors />
       <ModalsContainer />
     </SidebarProvider>
   )

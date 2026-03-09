@@ -35,11 +35,13 @@ export default function PageOpenedTabsItem({
     cursor: "grab",
   }
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button === 1) {
+      e.preventDefault()
       onTabRemove(tab.id)
       return
     }
+    listeners?.onMouseDown?.(e)
   }
 
   return (
@@ -47,10 +49,9 @@ export default function PageOpenedTabsItem({
       key={tab.id}
       className="group/tab @container relative min-w-0 flex-1 basis-0"
       {...attributes}
-      {...listeners}
       ref={setNodeRef}
       style={{ ...style, maxWidth: "12rem" }}
-      onPointerDown={onPointerDown}
+      onMouseDown={onMouseDown}
       onClick={() => onTabClick(tab.id)}
     >
       <div

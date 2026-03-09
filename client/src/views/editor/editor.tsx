@@ -20,6 +20,8 @@ import { common, createLowlight } from "lowlight"
 import mermaid from "mermaid"
 
 import { contentStore } from "@/store/content-store"
+import EmptyTabContent from "@/components/page-layout/empty-tab-content"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const lowlight = createLowlight(common)
 
@@ -97,18 +99,16 @@ export default observer(function Editor() {
   }, [editor, isEditable, handleSave])
 
   if (!currentPath) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Select a file to open
-      </div>
-    )
+    return <EmptyTabContent />
   }
 
   if (!editor) return null
 
   return (
-    <div className="mx-auto max-w-[800px]">
-      <EditorContent editor={editor} />
-    </div>
+    <ScrollArea className="h-full">
+      <div className="mx-auto max-w-[800px] px-6 py-4">
+        <EditorContent editor={editor} />
+      </div>
+    </ScrollArea>
   )
 })

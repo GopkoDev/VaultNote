@@ -27,7 +27,7 @@ export function ContextMenuConstructor({
 }: ContextMenuConstructorProps) {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuTrigger>{children}</ContextMenuTrigger>
 
       <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
         {menuItems.map((group, groupIndex) => (

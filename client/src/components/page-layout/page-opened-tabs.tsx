@@ -6,7 +6,8 @@ import { contentTabsStore } from "@/store/content-tabs-store"
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -35,7 +36,12 @@ export default observer(function PageOpenedTabs() {
     removeOpenedTab(id)
   }
 
-  const sensors = useSensors(useSensor(PointerSensor))
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  )
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event

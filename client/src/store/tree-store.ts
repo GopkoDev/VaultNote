@@ -6,12 +6,19 @@ import { contentTabsStore } from "./content-tabs-store"
 
 const STORAGE_KEY = "tree-store"
 
-function loadFromStorage(): { isAutoRevealActiveFile: boolean } {
+interface PersistedState {
+  isAutoRevealActiveFile: boolean
+  openFolders: string[]
+}
+
+function loadFromStorage(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { isAutoRevealActiveFile: false }
+    return raw
+      ? JSON.parse(raw)
+      : { isAutoRevealActiveFile: false, openFolders: [] }
   } catch {
-    return { isAutoRevealActiveFile: false }
+    return { isAutoRevealActiveFile: false, openFolders: [] }
   }
 }
 
@@ -22,7 +29,7 @@ interface CreatingState {
 
 class TreeStore {
   tree: FileItem[] = []
-  openFolders: Set<string> = new Set()
+  openFolders: Set<string> = new Set(loadFromStorage().openFolders)
   selectedFolderPath: string | null = null
   renamingPath: string | null = null
   creatingIn: CreatingState | null = null
@@ -33,13 +40,22 @@ class TreeStore {
     autorun(() => {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ isAutoRevealActiveFile: this.isAutoRevealActiveFile })
+        JSON.stringify({
+          isAutoRevealActiveFile: this.isAutoRevealActiveFile,
+          openFolders: [...this.openFolders],
+        })
       )
     })
     reaction(
       () => contentTabsStore.activeTab?.path ?? null,
       (path) => path && this.revealPath(path)
     )
+  }
+
+  async init() {
+    await this.loadTree()
+    const path = contentTabsStore.activeTab?.path
+    if (path) this.revealPath(path)
   }
 
   async loadTree() {
@@ -106,7 +122,8 @@ class TreeStore {
     const res = await filesApi.rename(path, newName)
 
     if (res.ok) {
-      const parentDir = path.slice(0, path.lastIndexOf("/"))
+      const slashIdx = path.lastIndexOf("/")
+      const parentDir = slashIdx >= 0 ? path.slice(0, slashIdx) : ""
       const newPath = parentDir ? `${parentDir}/${newName}` : newName
 
       runInAction(() => {
@@ -121,6 +138,8 @@ class TreeStore {
             this.openFolders.add(newPath + p.slice(path.length))
           }
         }
+
+        contentTabsStore.renameTabsForPath(path, newPath)
       })
 
       await this.loadTree()
@@ -146,6 +165,8 @@ class TreeStore {
         for (const p of [...this.openFolders]) {
           if (p.startsWith(path)) this.openFolders.delete(p)
         }
+
+        contentTabsStore.closeTabsForPath(path)
       })
 
       await this.loadTree()
@@ -155,9 +176,13 @@ class TreeStore {
     }
   }
 
-  startCreate(type: "file" | "directory" | null) {
+  startCreate(type: "file" | "directory" | null, rootForce: boolean = false) {
     if (!type) this.creatingIn = null
-    else this.creatingIn = { parentPath: this.selectedFolderPath, type }
+    else
+      this.creatingIn = {
+        parentPath: rootForce ? null : this.selectedFolderPath,
+        type,
+      }
     if (this.selectedFolderPath) this.openFolders.add(this.selectedFolderPath)
   }
 
@@ -165,17 +190,19 @@ class TreeStore {
     return this.creatingIn?.parentPath === path
   }
 
-  async submitCreate(name: string) {
-    if (!this.creatingIn) return
+  async submitCreate(name: string): Promise<string | null> {
+    if (!this.creatingIn) return null
     const { parentPath, type } = this.creatingIn
     const fullPath = parentPath ? `${parentPath}/${name}` : name
     this.creatingIn = null
     const res = await filesApi.create({ path: fullPath, type })
     if (res.ok) {
       await this.loadTree()
+      return fullPath
     } else {
       toast.error(`Failed to create`)
       console.warn(res.error)
+      return null
     }
   }
 
@@ -190,14 +217,29 @@ class TreeStore {
     for (let i = 1; i < parts.length; i++) {
       this.openFolders.add(parts.slice(0, i).join("/"))
     }
-    if (parts.length > 1) {
-      this.selectedFolderPath = parts.slice(0, -1).join("/")
-    }
+    this.selectedFolderPath =
+      parts.length > 1 ? parts.slice(0, -1).join("/") : null
   }
 
   async moveFile(path: string, targetPath: string) {
     const res = await filesApi.move(path, targetPath)
     if (res.ok) {
+      runInAction(() => {
+        if (this.selectedFolderPath?.startsWith(path)) {
+          this.selectedFolderPath =
+            targetPath + this.selectedFolderPath.slice(path.length)
+        }
+
+        for (const p of [...this.openFolders]) {
+          if (p.startsWith(path)) {
+            this.openFolders.delete(p)
+            this.openFolders.add(targetPath + p.slice(path.length))
+          }
+        }
+
+        contentTabsStore.moveTabsForPath(path, targetPath)
+      })
+
       await this.loadTree()
     } else {
       toast.error(`Failed to move`)

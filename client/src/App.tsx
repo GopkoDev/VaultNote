@@ -5,7 +5,7 @@ import { treeStore } from "@/store/tree-store"
 
 export default function App() {
   useEffect(() => {
-    treeStore.loadTree()
+    treeStore.init()
 
     return () => {
       treeStore.destroy()
