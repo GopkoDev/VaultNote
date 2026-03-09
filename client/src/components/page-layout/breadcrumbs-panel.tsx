@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip"
 
-const MAX_VISIBLE = 2
+const MAX_VISIBLE = 3
 
 export default observer(function BreadcrumbsPanel() {
   const { activeTab, mode, toggleMode } = contentTabsStore
@@ -29,34 +29,49 @@ export default observer(function BreadcrumbsPanel() {
     ? activeTab.path.split("/").filter(Boolean)
     : []
 
-  const hasEllipsis = segments.length > MAX_VISIBLE + 1
-  const visibleSegments = hasEllipsis
-    ? segments.slice(-(MAX_VISIBLE + 1))
-    : segments
+  // first + ellipsis + tail (MAX_VISIBLE - 1 last segments)
+  const hasEllipsis = segments.length > MAX_VISIBLE
+  const firstSegment = segments[0]
+  const tailSegments = hasEllipsis
+    ? segments.slice(-(MAX_VISIBLE - 1))
+    : segments.slice(1)
 
   return (
     <section className="flex items-center justify-between gap-2 px-4">
       <section className="h-8 w-8"></section>
       <Breadcrumb>
         <BreadcrumbList>
-          {segments.length === 0 ? (
+          {segments.length <= 1 ? (
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-muted-foreground">
-                {activeTab?.title}
+              <BreadcrumbPage
+                className={segments.length === 0 ? "text-muted-foreground" : ""}
+              >
+                {segments.length === 0 ? activeTab?.title : firstSegment}
               </BreadcrumbPage>
             </BreadcrumbItem>
           ) : (
             <>
+              {segments.length > 1 && (
+                <Fragment key="first">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <p>{firstSegment}</p>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </Fragment>
+              )}
+
               {hasEllipsis && (
-                <>
+                <Fragment key="ellipsis">
                   <BreadcrumbItem>
                     <BreadcrumbEllipsis />
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
-                </>
+                </Fragment>
               )}
 
-              {visibleSegments.slice(0, -1).map((segment, i) => (
+              {tailSegments.slice(0, -1).map((segment, i) => (
                 <Fragment key={segment + i}>
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
@@ -68,7 +83,7 @@ export default observer(function BreadcrumbsPanel() {
               ))}
 
               <BreadcrumbItem>
-                <BreadcrumbPage>{visibleSegments.at(-1)}</BreadcrumbPage>
+                <BreadcrumbPage>{tailSegments.at(-1)}</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           )}
