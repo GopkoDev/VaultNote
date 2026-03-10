@@ -8,7 +8,7 @@ export default function SideBarFooterContent() {
       <Separator />
       <SidebarFooter>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-medium text-primary transition-colors hover:text-sidebar-primary hover:underline">
             <a
               href="https://github.com/GopkoDev/VaultNote"
               target="_blank"

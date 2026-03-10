@@ -23,7 +23,7 @@ import {
 const MAX_VISIBLE = 3
 
 export default observer(function BreadcrumbsPanel() {
-  const { activeTab, mode, toggleMode } = contentTabsStore
+  const { activeTab, currentTabMode, toggleMode } = contentTabsStore
 
   const segments = activeTab?.path
     ? activeTab.path.split("/").filter(Boolean)
@@ -94,14 +94,20 @@ export default observer(function BreadcrumbsPanel() {
         <TooltipProvider delayDuration={2000}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleMode}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMode}
+                disabled={activeTab?.path === null}
+              >
                 <HugeiconsIcon
-                  icon={mode === "edit" ? Edit02Icon : BookOpen01Icon}
+                  primaryColor={"var(--sidebar-primary)"}
+                  icon={currentTabMode === "edit" ? Edit02Icon : BookOpen01Icon}
                 />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              {mode === "edit" ? "Edit" : "View"}
+              {currentTabMode === "edit" ? "Edit" : "View"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

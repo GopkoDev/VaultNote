@@ -1,42 +1,161 @@
-import { makeAutoObservable, reaction, runInAction } from "mobx"
+import { makeAutoObservable, observable, reaction, runInAction } from "mobx"
+import { Editor } from "@tiptap/core"
 import { filesApi } from "@/api/files"
 import { contentTabsStore } from "./content-tabs-store"
 import { toast } from "sonner"
+import { createEditorExtensions, EDITOR_CLASS } from "@/lib/editor-extensions"
+
+interface TabEditorState {
+  editor: Editor
+  path: string
+  autoSaveTimer: ReturnType<typeof setTimeout> | null
+  disposeUpdateListener: () => void
+}
 
 class ContentStore {
-  content: string = ""
   currentPath: string | null = null
-  isLoading: boolean = false
+  private _activeEditorRef: Editor | null = null
+  private _tabEditors: Map<number, TabEditorState> = new Map()
 
   constructor() {
-    makeAutoObservable(this, {}, { autoBind: true, deep: true })
+    makeAutoObservable(
+      this,
+      {
+        _activeEditorRef: observable.ref,
+        _tabEditors: false,
+      } as object,
+      { autoBind: true }
+    )
+
+    // Watch tab switches
     reaction(
-      () => contentTabsStore.activeTab?.path ?? null,
-      (path) => {
+      () => ({
+        tabId: contentTabsStore.activeTab?.id ?? null,
+        path: contentTabsStore.activeTab?.path ?? null,
+      }),
+      ({ tabId, path }, prev) => {
+        // Flush pending save for the previous tab before switching
+        if (prev?.tabId != null && prev.tabId !== tabId) {
+          this._flushSave(prev.tabId)
+        }
+
         runInAction(() => {
-          this.content = ""
-          this.currentPath = null
+          this.currentPath = path
+          this._activeEditorRef =
+            tabId != null ? (this._tabEditors.get(tabId)?.editor ?? null) : null
         })
-        if (path) this.loadContent(path)
+
+        if (tabId != null && path) {
+          this._loadContentForTab(tabId, path)
+        }
       },
       { fireImmediately: true }
     )
+
+    // Sync mode changes to the active editor
+    reaction(
+      () => contentTabsStore.currentTabMode,
+      (mode) => {
+        const editor = this._activeEditorRef
+        if (editor && !editor.isDestroyed) {
+          editor.setEditable(mode === "edit")
+        }
+      }
+    )
+
+    // Destroy editors for closed tabs
+    reaction(
+      () => Object.keys(contentTabsStore.openedTabs).map(Number),
+      (tabIds) => {
+        const tabIdSet = new Set(tabIds)
+        for (const tabId of this._tabEditors.keys()) {
+          if (!tabIdSet.has(tabId)) {
+            this._destroyTabEditor(tabId)
+          }
+        }
+      }
+    )
   }
 
-  async loadContent(path: string) {
-    runInAction(() => {
-      this.isLoading = true
-      this.currentPath = path
+  get activeEditor(): Editor | null {
+    return this._activeEditorRef
+  }
+
+  private _createTabEditor(tabId: number, path: string): TabEditorState {
+    const editor = new Editor({
+      extensions: createEditorExtensions(),
+      editorProps: { attributes: { class: EDITOR_CLASS } },
     })
 
+    const handleUpdate = () => {
+      const state = this._tabEditors.get(tabId)
+      if (!state) return
+      if (state.autoSaveTimer) clearTimeout(state.autoSaveTimer)
+      state.autoSaveTimer = setTimeout(() => {
+        state.autoSaveTimer = null
+        this._saveForState(state)
+      }, 500)
+    }
+
+    editor.on("update", handleUpdate)
+
+    const state: TabEditorState = {
+      editor,
+      path,
+      autoSaveTimer: null,
+      disposeUpdateListener: () => editor.off("update", handleUpdate),
+    }
+
+    this._tabEditors.set(tabId, state)
+    return state
+  }
+
+  private _flushSave(tabId: number) {
+    const state = this._tabEditors.get(tabId)
+    if (!state?.autoSaveTimer) return
+    clearTimeout(state.autoSaveTimer)
+    state.autoSaveTimer = null
+    this._saveForState(state)
+  }
+
+  private _saveForState(state: TabEditorState) {
+    console.log("saveForState", state)
+    if (state.editor.isDestroyed) return
+    const markdown = state.editor.storage.markdown.getMarkdown()
+    filesApi.update(state.path, markdown)
+  }
+
+  private _destroyTabEditor(tabId: number) {
+    const state = this._tabEditors.get(tabId)
+    if (!state) return
+    this._flushSave(tabId)
+    state.disposeUpdateListener()
+    state.editor.destroy()
+    this._tabEditors.delete(tabId)
+  }
+
+  private async _loadContentForTab(tabId: number, path: string) {
     const res = await filesApi.getContent(path)
 
     runInAction(() => {
-      this.isLoading = false
-      // Ignore stale responses if the active tab changed while loading
+      // Ignore stale responses if the tab changed while loading
       if (this.currentPath !== path) return
+
       if (res.ok) {
-        this.content = res.data.content
+        let state = this._tabEditors.get(tabId)
+        if (!state) {
+          state = this._createTabEditor(tabId, path)
+        }
+
+        const mode = contentTabsStore.activeTab?.mode ?? "view"
+        state.editor.setEditable(mode === "edit")
+        state.editor.commands.setContent(res.data.content)
+        // clearHistory is provided by the History extension (part of StarterKit)
+        ;(
+          state.editor.commands as unknown as Record<string, () => void>
+        ).clearHistory?.()
+
+        this._activeEditorRef = state.editor
       } else {
         toast.error(`Failed to load file: ${path}`)
         console.warn(res.error)
@@ -44,9 +163,14 @@ class ContentStore {
     })
   }
 
-  async saveContent(path: string, markdown: string) {
-    await filesApi.update(path, markdown)
-  }
+  // async saveContent(path?: string, markdown?: string) {
+  //   const targetPath = path ?? this.currentPath
+  //   if (!targetPath) return
+  //   const content =
+  //     markdown ?? this._activeEditorRef?.storage.markdown.getMarkdown()
+  //   if (content === undefined) return
+  //   await filesApi.update(targetPath, content)
+  // }
 }
 
 export const contentStore = new ContentStore()

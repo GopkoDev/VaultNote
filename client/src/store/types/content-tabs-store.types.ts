@@ -3,4 +3,5 @@ export interface OpenedTab {
   path: string | null
   title: string
   isActive: boolean
+  mode: "edit" | "view"
 }

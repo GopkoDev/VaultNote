@@ -6,7 +6,7 @@ const STORAGE_KEY = "content-tabs-store"
 
 function buildNewTab(isActive = true): OpenedTab {
   const id = Date.now()
-  return { id, path: null, title: "New tab", isActive }
+  return { id, path: null, title: "New tab", isActive, mode: "view" }
 }
 
 function buildDefaultTabs(): Record<number, OpenedTab> {
@@ -28,7 +28,6 @@ function loadFromStorage(): Record<number, OpenedTab> {
 
 class ContentTabsStore {
   openedTabs: Record<number, OpenedTab> = loadFromStorage()
-  mode: "edit" | "view" = "view"
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true, deep: true })
@@ -139,7 +138,16 @@ class ContentTabsStore {
   }
 
   toggleMode(): void {
-    this.mode = this.mode === "edit" ? "view" : "edit"
+    const tab = this.activeTab
+    if (!tab) return
+    this.openedTabs[tab.id] = {
+      ...tab,
+      mode: tab.mode === "edit" ? "view" : "edit",
+    }
+  }
+
+  get currentTabMode(): "edit" | "view" {
+    return this.activeTab?.mode ?? "view"
   }
 }
 
