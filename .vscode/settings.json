@@ -3,6 +3,5 @@
     "**/node_modules": true,
     "**/dist": true
   },
-  "git.ignoredRepositories": [],
-  "git.untrackedChanges": "separate"
+  "git.ignoredRepositories": []
 }
