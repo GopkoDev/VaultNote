@@ -11,6 +11,16 @@ export interface FileItem {
   modified?: string;
 }
 
+export interface SearchResult {
+  name: string;
+  path: string;
+  type: 'file';
+  size?: number;
+  modified?: string;
+  snippet?: string;
+  matchType: 'name' | 'content';
+}
+
 // ─── Request Bodies ──────────────────────────────────────────────────────────
 
 export interface CreateFileBody {
@@ -54,6 +64,29 @@ export interface ApiError {
 }
 
 export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError;
+
+// ─── Bookmarks ────────────────────────────────────────────────────────────────
+
+export interface Bookmark {
+  id: number;
+  name: string;
+  path: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface CreateBookmarkBody {
+  name: string;
+  path: string;
+}
+
+export interface UpdateBookmarkBody {
+  name: string;
+}
+
+export interface ReorderBookmarksBody {
+  ids: number[];
+}
 
 // ─── Env ──────────────────────────────────────────────────────────────────────
 

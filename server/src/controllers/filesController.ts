@@ -5,6 +5,7 @@ import { config } from '../config';
 import { createError } from '../middleware/errorHandler';
 import type {
   FileItem,
+  SearchResult,
   CreateFileBody,
   UpdateFileBody,
   RenameBody,
@@ -276,9 +277,26 @@ export async function moveItem(
   }
 }
 
+function extractSnippet(content: string, query: string, maxLen = 160): string {
+  const lower = content.toLowerCase();
+  const idx = lower.indexOf(query);
+  if (idx === -1) return '';
+
+  const start = Math.max(0, idx - 45);
+  const end = Math.min(content.length, idx + query.length + 100);
+  let snippet = content.slice(start, end).replace(/\s+/g, ' ').trim();
+
+  if (start > 0) snippet = '\u2026' + snippet;
+  if (end < content.length) snippet = snippet + '\u2026';
+
+  return snippet.length > maxLen
+    ? snippet.slice(0, maxLen) + '\u2026'
+    : snippet;
+}
+
 /**
  * GET /api/files/search?q=keyword
- * Search files by name or content
+ * Search files by name or content, returns results with content snippets
  */
 export async function searchFiles(
   req: Request,
@@ -292,7 +310,7 @@ export async function searchFiles(
       return next(createError('Missing search query: q', 400));
     }
 
-    const results: FileItem[] = [];
+    const results: SearchResult[] = [];
 
     async function walk(dir: string): Promise<void> {
       const entries = await fs.readdir(dir);
@@ -316,6 +334,7 @@ export async function searchFiles(
                   type: 'file',
                   size: stat.size,
                   modified: stat.mtime.toISOString(),
+                  matchType: 'name',
                 });
                 return;
               }
@@ -328,6 +347,8 @@ export async function searchFiles(
                   type: 'file',
                   size: stat.size,
                   modified: stat.mtime.toISOString(),
+                  matchType: 'content',
+                  snippet: extractSnippet(content, query),
                 });
               }
             }

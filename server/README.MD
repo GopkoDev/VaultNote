@@ -71,8 +71,9 @@ Hidden files (starting with `.`) are ignored.
 
 ### `GET /api/files/search?q=keyword`
 
-Search within `.md` files — by filename and content.  
-Case-insensitive search.
+Search within `.md` files — by filename and content.
+Case-insensitive. Name matches take priority (file is not opened if name matches).
+Content matches include a surrounding text snippet (up to 160 chars).
 
 **Query params**
 
@@ -91,11 +92,26 @@ Case-insensitive search.
       "path": "notes/todo.md",
       "type": "file",
       "size": 1024,
-      "modified": "2026-03-06T10:00:00.000Z"
+      "modified": "2026-03-06T10:00:00.000Z",
+      "matchType": "name"
+    },
+    {
+      "name": "ideas.md",
+      "path": "notes/ideas.md",
+      "type": "file",
+      "size": 2048,
+      "modified": "2026-03-06T10:00:00.000Z",
+      "matchType": "content",
+      "snippet": "…some surrounding text with the keyword inside…"
     }
   ]
 }
 ```
+
+| Field       | Type                    | Description                                      |
+| ----------- | ----------------------- | ------------------------------------------------ |
+| `matchType` | `"name"` \| `"content"` | Whether keyword matched the filename or content  |
+| `snippet`   | string                  | Context snippet around match (only for content)  |
 
 **Errors**
 
@@ -341,6 +357,158 @@ Moves a file or directory to a new location.
 
 ---
 
+## Bookmarks API — `/api/bookmarks`
+
+Bookmarks are stored in a local SQLite database (`.data/vaultnote.db`).
+
+### `GET /api/bookmarks`
+
+Returns all bookmarks sorted by `sort_order`, then `created_at`.
+
+**Response `200`**
+
+```json
+{
+  "ok": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "My Note",
+      "path": "notes/my-note.md",
+      "sort_order": 0,
+      "created_at": "2026-03-11T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/bookmarks`
+
+Creates a new bookmark. `sort_order` is assigned automatically (appended to end).
+
+**Request body**
+
+```json
+{
+  "name": "My Note",
+  "path": "notes/my-note.md"
+}
+```
+
+| Field  | Type   | Required | Description               |
+| ------ | ------ | -------- | ------------------------- |
+| `name` | string | ✅       | Display name              |
+| `path` | string | ✅       | Relative path from vault  |
+
+**Response `201`**
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "name": "My Note",
+    "path": "notes/my-note.md",
+    "sort_order": 1,
+    "created_at": "2026-03-11T10:00:00.000Z"
+  }
+}
+```
+
+**Errors**
+
+| Status | Reason                    |
+| ------ | ------------------------- |
+| `400`  | `name` or `path` missing  |
+
+---
+
+### `PATCH /api/bookmarks/:id`
+
+Renames a bookmark.
+
+**Request body**
+
+```json
+{ "name": "New Name" }
+```
+
+| Field  | Type   | Required | Description  |
+| ------ | ------ | -------- | ------------ |
+| `name` | string | ✅       | New name     |
+
+**Response `200`**
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "name": "New Name",
+    "path": "notes/my-note.md",
+    "sort_order": 0,
+    "created_at": "2026-03-11T10:00:00.000Z"
+  }
+}
+```
+
+**Errors**
+
+| Status | Reason              |
+| ------ | ------------------- |
+| `400`  | `name` is missing   |
+| `404`  | Bookmark not found  |
+
+---
+
+### `DELETE /api/bookmarks/:id`
+
+Deletes a bookmark.
+
+**Response `200`**
+
+```json
+{ "ok": true, "data": { "deleted": 1 } }
+```
+
+**Errors**
+
+| Status | Reason             |
+| ------ | ------------------ |
+| `404`  | Bookmark not found |
+
+---
+
+### `PUT /api/bookmarks/reorder`
+
+Reorders bookmarks by providing a full ordered array of IDs.
+
+**Request body**
+
+```json
+{ "ids": [3, 1, 2] }
+```
+
+| Field | Type       | Required | Description                          |
+| ----- | ---------- | -------- | ------------------------------------ |
+| `ids` | `number[]` | ✅       | All bookmark IDs in desired order    |
+
+**Response `200`**
+
+```json
+{ "ok": true, "data": { "reordered": 3 } }
+```
+
+**Errors**
+
+| Status | Reason             |
+| ------ | ------------------ |
+| `400`  | `ids` is not array |
+
+---
+
 ## Security
 
 - **Path traversal protection** — all paths are validated by the `validatePath` middleware. Any path outside `DOCS_ROOT` returns `403 Forbidden`.
@@ -351,11 +519,14 @@ Moves a file or directory to a new location.
 
 ## Environment Variables
 
-| Variable     | Default                 | Description             |
-| ------------ | ----------------------- | ----------------------- |
-| `PORT`       | `3001`                  | HTTP server port        |
-| `DOCS_ROOT`  | `./docs`                | Path to notes directory |
-| `CLIENT_URL` | `http://localhost:5173` | Client origin for CORS  |
+Всі змінні задаються в кореневому `.env` файлі.
+
+| Variable       | Default                          | Description              |
+| -------------- | -------------------------------- | ------------------------ |
+| `PORT`         | `3001`                           | HTTP server port         |
+| `DOCS_ROOT`    | `./docs`                         | Path to notes directory  |
+| `CLIENT_URL`   | `http://localhost:5173`          | Client origin for CORS   |
+| `DATABASE_URL` | `file:./.data/vaultnote.db`      | SQLite database path     |
 
 ---
 
@@ -371,5 +542,18 @@ interface FileItem {
   children?: FileItem[]; // only for directory
   size?: number; // bytes, only for file
   modified?: string; // ISO date string, only for file
+}
+
+interface SearchResult extends FileItem {
+  matchType: 'name' | 'content';
+  snippet?: string; // only when matchType === 'content'
+}
+
+interface Bookmark {
+  id: number;
+  name: string;
+  path: string; // relative from DOCS_ROOT
+  sort_order: number;
+  created_at: string; // ISO date string
 }
 ```

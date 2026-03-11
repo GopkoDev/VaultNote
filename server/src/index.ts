@@ -1,3 +1,5 @@
+import path from 'path';
+import { execFileSync } from 'child_process';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs-extra';
@@ -5,6 +7,7 @@ import { config } from './config';
 import { logger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { filesRouter } from './routes/files';
+import { bookmarksRouter } from './routes/bookmarks';
 
 function createApp() {
   const app = express();
@@ -35,6 +38,7 @@ function createApp() {
 
   // ─── Routes ───────────────────────────────────────────────────────────────
   app.use('/api/files', filesRouter);
+  app.use('/api/bookmarks', bookmarksRouter);
 
   // ─── 404 ──────────────────────────────────────────────────────────────────
   app.use((_req, res) => {
@@ -49,6 +53,12 @@ function createApp() {
 
 async function bootstrap(): Promise<void> {
   await fs.ensureDir(config.DOCS_ROOT);
+  await fs.ensureDir(path.resolve(process.cwd(), '.data'));
+
+  execFileSync('npx', ['prisma', 'migrate', 'deploy'], {
+    stdio: 'inherit',
+    cwd: process.cwd(),
+  });
 
   const app = createApp();
 

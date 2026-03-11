@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Bookmark {
+  id         Int      @id @default(autoincrement())
+  name       String
+  path       String
+  sort_order Float    @default(0)
+  created_at DateTime @default(now())
+}
