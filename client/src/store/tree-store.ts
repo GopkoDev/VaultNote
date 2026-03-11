@@ -1,5 +1,9 @@
 import { filesApi } from "@/api/files"
 import type { FileItem } from "@/types/files"
+
+export type FlatTreeNode =
+  | { kind: "item"; item: FileItem; depth: number }
+  | { kind: "new"; depth: number }
 import { autorun, makeAutoObservable, reaction, runInAction } from "mobx"
 import { toast } from "sonner"
 import { contentTabsStore } from "./content-tabs-store"
@@ -186,10 +190,6 @@ class TreeStore {
     if (this.selectedFolderPath) this.openFolders.add(this.selectedFolderPath)
   }
 
-  isCreatingHere = (path: string): boolean => {
-    return this.creatingIn?.parentPath === path
-  }
-
   async submitCreate(name: string): Promise<string | null> {
     if (!this.creatingIn) return null
     const { parentPath, type } = this.creatingIn
@@ -245,6 +245,29 @@ class TreeStore {
       toast.error(`Failed to move`)
       console.warn(res.error)
     }
+  }
+
+  get flatVisibleNodes(): FlatTreeNode[] {
+    const result: FlatTreeNode[] = []
+
+    const traverse = (items: FileItem[], depth: number) => {
+      for (const item of items) {
+        result.push({ kind: "item", item, depth })
+        if (item.type === "directory" && this.openFolders.has(item.path)) {
+          traverse(item.children ?? [], depth + 1)
+          if (this.creatingIn?.parentPath === item.path) {
+            result.push({ kind: "new", depth: depth + 1 })
+          }
+        }
+      }
+    }
+
+    traverse(this.tree, 0)
+    if (this.creatingIn?.parentPath === null) {
+      result.push({ kind: "new", depth: 0 })
+    }
+
+    return result
   }
 
   destroy() {

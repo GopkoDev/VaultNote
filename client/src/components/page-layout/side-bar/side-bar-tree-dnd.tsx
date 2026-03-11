@@ -236,8 +236,6 @@ const SideBarRootDropArea = observer(function SideBarRootDropArea({
       onClick={onRootClick}
     >
       {children}
-      {/* Fills remaining height so click-to-deselect and DnD-to-root work anywhere */}
-      <div className="flex-1" />
     </div>
   )
 })
