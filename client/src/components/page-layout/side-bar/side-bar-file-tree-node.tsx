@@ -10,14 +10,14 @@ import {
 import { cn } from "@/lib/utils"
 import { observer } from "mobx-react-lite"
 import { contentTabsStore } from "@/store/content-tabs-store"
-
 import SideBarFileContextMenu from "./side-bar-file-context-menu"
 import SideBarFolderContextMenu from "./side-bar-folder-context-menu"
 import { SideBarInput } from "@/components/own-ui/side-bar-input"
 import { useSideBarFileTreeNode, DndItemWrapper } from "./side-bar-tree-dnd"
 
-export const INDENT_PX = 20
+export const INDENT_PX = 10
 const ARROW_OFFSET = 14
+const RENAME_OFSFSET = ARROW_OFFSET + 26
 
 const FOLDER_SELECTED =
   "bg-sidebar-primary/15 ring-1 ring-sidebar-primary/60 text-sidebar-primary font-medium"
@@ -74,7 +74,7 @@ export default observer(function SideBarFileTreeRow({
           {isNodeRenaming ? (
             <div
               className="px-2 py-0.5"
-              style={{ paddingLeft: paddingLeft + ARROW_OFFSET }}
+              style={{ paddingLeft: paddingLeft + RENAME_OFSFSET }}
             >
               <SideBarInput
                 defaultValue={item.name}
@@ -84,17 +84,18 @@ export default observer(function SideBarFileTreeRow({
               />
             </div>
           ) : (
-            <SidebarMenuButton
-              onClick={onFileClick}
-              style={{ paddingLeft: paddingLeft + ARROW_OFFSET }}
-              className={cn(
-                "border border-transparent",
-                isActiveFile && FILE_ACTIVE
-              )}
-            >
-              <HugeiconsIcon icon={FileIcon} size={15} strokeWidth={2} />
-              <span className="truncate">{item.name}</span>
-            </SidebarMenuButton>
+            <div style={{ marginLeft: paddingLeft + ARROW_OFFSET }}>
+              <SidebarMenuButton
+                onClick={onFileClick}
+                className={cn(
+                  "border border-transparent",
+                  isActiveFile && FILE_ACTIVE
+                )}
+              >
+                <HugeiconsIcon icon={FileIcon} size={15} strokeWidth={2} />
+                <span className="truncate">{item.name}</span>
+              </SidebarMenuButton>
+            </div>
           )}
         </DndItemWrapper>
       </SideBarFileContextMenu>
@@ -105,7 +106,10 @@ export default observer(function SideBarFileTreeRow({
     <SideBarFolderContextMenu item={item}>
       <DndItemWrapper type="directory" {...dndProps}>
         {isNodeRenaming ? (
-          <div className="px-2 py-0.5" style={{ paddingLeft: paddingLeft }}>
+          <div
+            className="px-2 py-0.5"
+            style={{ paddingLeft: paddingLeft + RENAME_OFSFSET }}
+          >
             <SideBarInput
               defaultValue={item.name}
               placeholder="Folder name..."
