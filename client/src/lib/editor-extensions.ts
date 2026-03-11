@@ -14,6 +14,7 @@ import { Highlight } from "@tiptap/extension-highlight"
 import { Typography } from "@tiptap/extension-typography"
 import { Placeholder } from "@tiptap/extension-placeholder"
 import { common, createLowlight } from "lowlight"
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
 import mermaid from "mermaid"
 
 const lowlight = createLowlight(common)
@@ -38,7 +39,12 @@ console.error = (...args: unknown[]) => {
 export const EDITOR_CLASS =
   "prose prose-neutral dark:prose-invert max-w-none outline-none"
 
-export function createEditorExtensions() {
+export interface EditorExtensionsOptions {
+  /** Called when a task item checkbox is clicked in view (read-only) mode. */
+  onTaskItemToggle?: (node: ProseMirrorNode, checked: boolean) => void
+}
+
+export function createEditorExtensions(options?: EditorExtensionsOptions) {
   return [
     StarterKit.configure({ codeBlock: false }),
     Markdown.configure({ html: false, tightLists: true }),
@@ -49,7 +55,15 @@ export function createEditorExtensions() {
     CodeBlockLowlight.configure({ lowlight }),
     CodeBlockLowlightMermaid.configure({ lowlight }),
     TaskList,
-    TaskItem.configure({ nested: true }),
+    TaskItem.configure({
+      nested: true,
+      onReadOnlyChecked: options?.onTaskItemToggle
+        ? (node, checked) => {
+            options.onTaskItemToggle!(node, checked)
+            return true
+          }
+        : undefined,
+    }),
     Link.configure({ openOnClick: true, autolink: true }),
     Image,
     Highlight.configure({ multicolor: false }),

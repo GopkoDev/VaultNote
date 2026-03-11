@@ -1,17 +1,5 @@
-import type { ApiResponse, FileItem } from "@/types/files"
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001"
-
-async function request<T>(
-  path: string,
-  options?: RequestInit
-): Promise<ApiResponse<T>> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  })
-  return res.json() as Promise<ApiResponse<T>>
-}
+import { _request as request } from "./_request"
+import type { ApiResponse, FileItem, SearchResult } from "@/types/files"
 
 export const filesApi = {
   getTree(): Promise<ApiResponse<FileItem[]>> {
@@ -24,7 +12,7 @@ export const filesApi = {
     return request(`/api/files/content?path=${encodeURIComponent(path)}`)
   },
 
-  search(q: string): Promise<ApiResponse<FileItem[]>> {
+  search(q: string): Promise<ApiResponse<SearchResult[]>> {
     return request(`/api/files/search?q=${encodeURIComponent(q)}`)
   },
 

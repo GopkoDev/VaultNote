@@ -1,4 +1,10 @@
-import { makeAutoObservable, observable, reaction, runInAction } from "mobx"
+import {
+  makeAutoObservable,
+  observable,
+  reaction,
+  runInAction,
+  comparer,
+} from "mobx"
 import { Editor } from "@tiptap/core"
 import { filesApi } from "@/api/files"
 import { contentTabsStore } from "./content-tabs-store"
@@ -34,9 +40,15 @@ class ContentStore {
         path: contentTabsStore.activeTab?.path ?? null,
       }),
       ({ tabId, path }, prev) => {
-        // Flush pending save for the previous tab before switching
-        if (prev?.tabId != null && prev.tabId !== tabId) {
-          this._flushSave(prev.tabId)
+        // Flush pending save before leaving the previous context:
+        // - switching to a different tab
+        // - opening a different file within the same tab
+        if (prev?.tabId != null) {
+          if (prev.tabId !== tabId) {
+            this._flushSave(prev.tabId)
+          } else if (prev.path !== path) {
+            this._flushSave(tabId)
+          }
         }
 
         runInAction(() => {
@@ -49,7 +61,7 @@ class ContentStore {
           this._loadContentForTab(tabId, path)
         }
       },
-      { fireImmediately: true }
+      { fireImmediately: true, equals: comparer.structural }
     )
 
     // Sync mode changes to the active editor
@@ -82,10 +94,33 @@ class ContentStore {
   }
 
   private _createTabEditor(tabId: number, path: string): TabEditorState {
+    // Use a ref so the task-item toggle callback can access the editor
+    // after it is fully constructed.
+    const editorRef = { current: null as Editor | null }
+
+    const extensions = createEditorExtensions({
+      onTaskItemToggle: (node, checked) => {
+        const editor = editorRef.current
+        if (!editor || editor.isDestroyed) return
+        editor.state.doc.descendants((n, pos) => {
+          if (n !== node) return
+          editor.view.dispatch(
+            editor.state.tr.setNodeMarkup(pos, undefined, {
+              ...n.attrs,
+              checked,
+            })
+          )
+          return false
+        })
+      },
+    })
+
     const editor = new Editor({
-      extensions: createEditorExtensions(),
+      extensions,
       editorProps: { attributes: { class: EDITOR_CLASS } },
     })
+
+    editorRef.current = editor
 
     const handleUpdate = () => {
       const state = this._tabEditors.get(tabId)
@@ -119,7 +154,6 @@ class ContentStore {
   }
 
   private _saveForState(state: TabEditorState) {
-    console.log("saveForState", state)
     if (state.editor.isDestroyed) return
     const markdown = state.editor.storage.markdown.getMarkdown()
     filesApi.update(state.path, markdown)
@@ -145,6 +179,10 @@ class ContentStore {
         let state = this._tabEditors.get(tabId)
         if (!state) {
           state = this._createTabEditor(tabId, path)
+        } else if (state.path !== path) {
+          // Same tab editor, but a different file was opened.
+          // Update the path so any subsequent autosave targets the correct file.
+          state.path = path
         }
 
         const mode = contentTabsStore.activeTab?.mode ?? "view"
@@ -155,6 +193,13 @@ class ContentStore {
           state.editor.commands as unknown as Record<string, () => void>
         ).clearHistory?.()
 
+        // setContent fires the "update" event and queues an autosave timer.
+        // Cancel it — the content was just loaded from disk, nothing to save yet.
+        if (state.autoSaveTimer) {
+          clearTimeout(state.autoSaveTimer)
+          state.autoSaveTimer = null
+        }
+
         this._activeEditorRef = state.editor
       } else {
         toast.error(`Failed to load file: ${path}`)
@@ -162,15 +207,6 @@ class ContentStore {
       }
     })
   }
-
-  // async saveContent(path?: string, markdown?: string) {
-  //   const targetPath = path ?? this.currentPath
-  //   if (!targetPath) return
-  //   const content =
-  //     markdown ?? this._activeEditorRef?.storage.markdown.getMarkdown()
-  //   if (content === undefined) return
-  //   await filesApi.update(targetPath, content)
-  // }
 }
 
 export const contentStore = new ContentStore()

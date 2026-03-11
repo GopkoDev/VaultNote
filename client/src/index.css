@@ -221,17 +221,20 @@
   table {
     @apply w-full border-collapse text-sm;
   }
-  thead tr {
-    @apply border-b-2;
+  th,
+  td {
+    @apply px-3;
+    border: 1px solid var(--border);
+    p {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
   }
   th {
-    @apply bg-muted px-3 py-2 text-left font-semibold;
+    @apply bg-muted text-left font-semibold;
   }
-  td {
-    @apply border-b px-3 py-2;
-  }
-  tr:last-child td {
-    @apply border-b-0;
+  thead tr {
+    border-bottom: 2px solid var(--border);
   }
 
   code:not(pre code) {
@@ -241,13 +244,6 @@
   code::before,
   code::after {
     content: none !important;
-  }
-
-  pre {
-    @apply rounded-lg border text-sm leading-relaxed;
-  }
-  pre code {
-    @apply bg-transparent p-0 text-inherit;
   }
 
   blockquote {
@@ -263,19 +259,53 @@
     @apply list-none pl-0;
   }
   ul[data-type="taskList"] li {
-    @apply flex items-start gap-2;
+    @apply flex items-center gap-2;
   }
   ul[data-type="taskList"] li > label {
-    @apply mt-0.5 shrink-0;
+    @apply shrink-0;
   }
   ul[data-type="taskList"] li > div {
     @apply flex-1;
+  }
+  ul[data-type="taskList"] li[data-checked="true"] > div {
+    @apply text-muted-foreground line-through;
+  }
+
+  /* Checkbox */
+  ul[data-type="taskList"] input[type="checkbox"] {
+    @apply m-0 shrink-0 cursor-pointer align-middle;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1.5px solid var(--border);
+    border-radius: calc(var(--radius) * 0.4);
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 75%;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+    margin: 0.75rem 0;
+  }
+  ul[data-type="taskList"] input[type="checkbox"]:hover:not(:checked) {
+    border-color: var(--primary);
+  }
+  ul[data-type="taskList"] input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3 8l3.5 3.5L13 5'/%3E%3C/svg%3E");
   }
 
   /* Highlight */
   mark {
     @apply rounded px-0.5;
-    background: color-mix(in oklch, oklch(0.85 0.15 90) 40%, transparent);
+    background: color-mix(
+      in oklch,
+      oklch(0.715 0.143 215.221) 60%,
+      transparent
+    );
   }
 
   /* Placeholder */
@@ -303,6 +333,15 @@
     padding: 1em 1.25em !important;
     font-size: 0.85em !important;
   }
+}
+
+/* TipTap table — selected cell highlight */
+.selectedCell {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 12%,
+    transparent
+  ) !important;
 }
 
 /* Dark mode — override github.css tokens with github-dark palette */
